@@ -29,8 +29,30 @@ class InferenceResponse(BaseModel):
 
 
 # ==========================
-# Helpers: call strategies
+# Helpers
 # ==========================
+def _build_kwargs_from_signature(fn: Callable[..., Any], payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    يبني kwargs اعتمادًا على توقيع الدالة: يأخذ فقط المفاتيح الموجودة في payload
+    والتي تطابق أسماء معاملات الدالة (يتجاهل self, *args, **kwargs).
+    """
+    try:
+        sig = inspect.signature(fn)
+    except (TypeError, ValueError):
+        return {}
+
+    allowed: list[str] = []
+    for p in sig.parameters.values():
+        if p.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+            continue
+        if p.name == "self":
+            continue
+        allowed.append(p.name)
+
+    kwargs = {k: v for k, v in payload.items() if k in allowed}
+    return kwargs
+
+
 def _call_sync_with_strategies(fn: Callable[..., Any], payload: dict[str, Any]) -> Any:
     last_err: Exception | None = None
     # 1) kwargs
@@ -48,6 +70,13 @@ def _call_sync_with_strategies(fn: Callable[..., Any], payload: dict[str, Any]) 
         return fn()
     except TypeError as e:
         last_err = e
+    # 4) signature-aware kwargs (only matching names)
+    try:
+        kwargs = _build_kwargs_from_signature(fn, payload)
+        return fn(**kwargs)
+    except TypeError as e:
+        last_err = e
+
     assert last_err is not None
     raise last_err
 
@@ -69,6 +98,13 @@ async def _call_async_with_strategies(fn: Callable[..., Coroutine[Any, Any, Any]
         return await fn()
     except TypeError as e:
         last_err = e
+    # 4) signature-aware kwargs
+    try:
+        kwargs = _build_kwargs_from_signature(fn, payload)
+        return await fn(**kwargs)
+    except TypeError as e:
+        last_err = e
+
     assert last_err is not None
     raise last_err
 
