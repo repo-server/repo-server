@@ -2,43 +2,80 @@
 from __future__ import annotations
 
 import inspect
-from typing import Annotated, Any
+from typing import Any, Annotated, Optional, Callable, Coroutine
 
 from fastapi import APIRouter, Body, HTTPException
 from pydantic import BaseModel
 
-from app.plugins.loader import get_plugin_instance  # integrate with your plugin system
-
+# استخدم اللودر الحقيقي في مشروعك
+from app.plugins.loader import get_plugin_instance
 
 router = APIRouter(prefix="/inference", tags=["inference"])
 
 
-# --------- Models ---------
+# ==========================
+# Schemas
+# ==========================
 class InferenceRequest(BaseModel):
     plugin: str
     task: str
-    payload: dict[str, Any]
+    payload: Optional[dict[str, Any]] = None
 
 
 class InferenceResponse(BaseModel):
     ok: bool
-    result: dict[str, Any] | None = None
-    error: str | None = None
+    result: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
 
 
-# --------- Endpoints ---------
-@router.get("/")
-def root():
-    """Root endpoint for /inference (for health/compatibility)"""
-    return {"ok": True, "service": "inference-root"}
+# ==========================
+# Helpers: call strategies
+# ==========================
+def _call_sync_with_strategies(fn: Callable[..., Any], payload: dict[str, Any]) -> Any:
+    last_err: Exception | None = None
+    # 1) kwargs
+    try:
+        return fn(**payload)
+    except TypeError as e:
+        last_err = e
+    # 2) single arg (pass the whole payload dict)
+    try:
+        return fn(payload)
+    except TypeError as e:
+        last_err = e
+    # 3) no args
+    try:
+        return fn()
+    except TypeError as e:
+        last_err = e
+    assert last_err is not None
+    raise last_err
 
 
-@router.get("/ping")
-def ping():
-    """Health check for the inference router"""
-    return {"ok": True, "service": "inference"}
+async def _call_async_with_strategies(fn: Callable[..., Coroutine[Any, Any, Any]], payload: dict[str, Any]) -> Any:
+    last_err: Exception | None = None
+    # 1) kwargs
+    try:
+        return await fn(**payload)
+    except TypeError as e:
+        last_err = e
+    # 2) single arg
+    try:
+        return await fn(payload)
+    except TypeError as e:
+        last_err = e
+    # 3) no args
+    try:
+        return await fn()
+    except TypeError as e:
+        last_err = e
+    assert last_err is not None
+    raise last_err
 
 
+# ==========================
+# Endpoints
+# ==========================
 @router.post("/run", response_model=InferenceResponse)
 async def run_inference(req: Annotated[InferenceRequest, Body(...)]):
     """
@@ -46,23 +83,30 @@ async def run_inference(req: Annotated[InferenceRequest, Body(...)]):
     """
     if not req.plugin or not req.task:
         raise HTTPException(status_code=400, detail="Plugin and task are required")
-    try:
-        plugin = get_plugin_instance(req.plugin)
-    except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Plugin not found: {req.plugin}") from e
+
+    plugin = get_plugin_instance(req.plugin)
     fn = getattr(plugin, req.task, None)
     if not callable(fn):
         raise HTTPException(status_code=404, detail=f"Task '{req.task}' not found in plugin '{req.plugin}'")
+
+    payload: dict[str, Any] = req.payload or {}
+
     try:
         if inspect.iscoroutinefunction(fn):
-            result = await fn(req.payload)  # type: ignore
+            result = await _call_async_with_strategies(fn, payload)  # type: ignore[arg-type]
         else:
-            result = fn(req.payload)  # type: ignore
+            result = _call_sync_with_strategies(fn, payload)         # type: ignore[arg-type]
     except Exception as e:
         return InferenceResponse(ok=False, error=f"Task failed: {e!s}")
 
-    # Normalize result into dict
+    # Normalize to dict
     if not isinstance(result, dict):
         result = {"result": result}
 
     return InferenceResponse(ok=True, result=result)
+
+
+# Alias for backwards-compat
+@router.post("", response_model=InferenceResponse)
+async def run_inference_alias(req: Annotated[InferenceRequest, Body(...)]):
+    return await run_inference(req)
