@@ -1,0 +1,52 @@
+{
+  "services": {
+    "api": {
+      "depends_on": [],
+      "cwd": "fastapi",
+      "python_exe": "J:/repo-server/fastapi/.venv/Scripts/python.exe",
+      "cmd": [
+        "-m",
+        "uvicorn",
+        "main:app",
+        "--app-dir",
+        "app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000",
+        "--reload"
+      ],
+      "health": "http://127.0.0.1:8000/health",
+      "health_timeout": 30,
+      "exports": {
+        "port": "8000",
+        "base_url": "http://127.0.0.1:8000"
+      }
+    },
+
+
+    "streamlit": {
+      "depends_on": ["api"],
+      "cwd": "streamlit",
+      "python_exe": "J:/repo-server/streamlit/.venv/Scripts/python.exe",
+      "cmd": [
+        "-m",
+        "streamlit",
+        "run",
+        "app.py",
+        "--server.address",
+        "127.0.0.1",
+        "--server.port",
+        "8501"
+      ],
+      "env_from": {
+        "API_BASE_URL": "${api:base_url}"
+      },
+      "health": "http://127.0.0.1:8501",
+      "health_timeout": 30,
+      "exports": {
+        "url": "http://127.0.0.1:8501"
+      }
+    }
+  }
+}

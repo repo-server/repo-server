@@ -1,0 +1,54 @@
+:root{
+  --ns-accent:#1e88e5;
+  --ns-border:#223042;
+  --ns-chip-bg:#0b2239;
+  --ns-chip-br:#1e3a5f;
+  --ns-chip-fg:#b3cffb;
+}
+
+/* تباعد مريح للـ sidebar */
+[data-testid="stSidebar"] .block-container{padding:16px 14px;}
+
+/* بطاقات */
+.ns-card{
+  border:1px solid var(--ns-border);
+  border-radius:14px;
+  padding:14px 12px;
+  margin-bottom:14px;
+  background:rgba(255,255,255,.02);
+}
+.ns-card h4{margin:0 0 8px 0;font-weight:600;opacity:.9}
+
+/* صفوف مرنة */
+.ns-row{display:flex;gap:10px;align-items:center}
+.ns-row>*{flex:1}
+
+/* إدخالات ناعمة الحدود */
+[data-testid="stSidebar"] .stSelectbox>div>div{
+  border-radius:12px; border:1px solid var(--ns-border);
+}
+[data-testid="stSidebar"] .stTextInput>div>div input{
+  border:1px solid var(--ns-border); border-radius:12px;
+}
+[data-testid="stSidebar"] .stTextInput>div>div{border-radius:12px}
+
+/* أزرار ممتدة */
+[data-testid="stSidebar"] .stButton>button{
+  width:100%; border-radius:12px; border:1px solid var(--ns-border);
+  padding:.55rem .9rem;
+}
+[data-testid="stSidebar"] .stButton>button:hover{border-color:var(--ns-accent)}
+
+/* شارة حالة التوكن */
+.ns-chip{
+  display:inline-flex; gap:.45rem; align-items:center;
+  padding:.28rem .6rem; border-radius:999px;
+  background:var(--ns-chip-bg); border:1px solid var(--ns-chip-br);
+  color:var(--ns-chip-fg); font-size:.85rem;
+}
+
+/* نقطة حالة + زمن الاستجابة */
+.ns-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.ns-dot.ok{background:#10b981}      /* أخضر */
+.ns-dot.fail{background:#ef4444}    /* أحمر */
+.ns-latency{opacity:.8;font-size:.85rem;margin-left:.35rem}
