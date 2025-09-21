@@ -48,7 +48,7 @@ repo-server/
 
 ### 1) Clone the repo
 ```bash
-git clone <your-repo-url> repo-server
+git clone https://github.com/repo-server/repo-server
 cd repo-server
 ```
 
@@ -159,10 +159,13 @@ Custom stylesheet: `streamlit/.streamlit/neuroserve.css` controls theme, cards, 
 
 ## 🖼️ Screenshots
 
-- **Dashboard — Auth & Health**
-```md
-![Dashboard](docs/images/dashboard-auth.png)
-```
+### Dashboard – Plugins
+<p align="center">
+  <img src="docs/images/Screenshot.png" alt="Plugins Screenshot" width="800">
+  <br>
+  <em>Streamlit dashboard running the <code>pdf_reader</code> plugin (extract_text task).</em>
+</p>
+
 
 ---
 
