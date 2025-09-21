@@ -184,7 +184,7 @@ def features_for(base_url: str) -> Dict[str, bool]:
     return {
         "auth":      supports(base_url, "POST", "/auth/login"),
         "auth_me":   supports(base_url, "GET",  "/auth/me"),
-        "uploads":   supports(base_url, "GET",  "/uploads") or supports(base_url, "POST", "/uploads"),
+        "uploads": supports(base_url, "GET", "/uploads/pdf") or supports(base_url, "POST", "/uploads/pdf"),
         "plugins":   supports(base_url, "GET",  "/plugins") and supports(base_url, "POST", "/plugins/{name}/{task}"),
         "inference": supports(base_url, "POST", "/inference"),
         "workflows": supports(base_url, "GET",  "/workflows") or supports(base_url, "POST", "/workflows/run"),
@@ -435,20 +435,47 @@ with tabs[1]:
     st.subheader("Uploads")
     uploads_disabled = no_selection or not current_feats.get("uploads", False)
 
-    file = st.file_uploader("Choose a file", type=None, disabled=uploads_disabled, key="upl-file")
+    # رفع ملف PDF
+    file = st.file_uploader("Choose a PDF file", type=["pdf"], disabled=uploads_disabled, key="upl-file")
     if file is not None:
         files = {"file": (file.name, file.getvalue())}
-        if st.button("POST /uploads", disabled=uploads_disabled, key="upl-post"):
-            resp = api_request("POST", "/uploads", files=files)
+        if st.button("POST /uploads/pdf", disabled=uploads_disabled, key="upl-post"):
+            resp = api_request("POST", "/uploads/pdf", files=files)
             show_response(resp)
 
     st.markdown("---")
-    if st.button("GET /uploads", disabled=uploads_disabled, key="upl-get"):
-        resp = api_request("GET", "/uploads")
-        show_response(resp)
+
+    # قائمة الملفات
+    if st.button("GET /uploads/pdf", disabled=uploads_disabled, key="upl-get"):
+        resp = api_request("GET", "/uploads/pdf")
+        if resp.ok:
+            data = resp.json()
+            st.json(data)
+
+            # أزرار تحميل الملفات
+            for f in data.get("files", []):
+                rel_path = f.get("rel_path", "")
+                fname = rel_path.split("/")[-1]
+
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"- {fname} ({f.get('size_bytes', 0)} bytes)")
+                with col2:
+                    dl = api_request("GET", f"/uploads/pdf/{fname}")
+                    if dl.ok:
+                        st.download_button(
+                            "⬇️ Download",
+                            data=dl.content,
+                            file_name=fname,
+                            mime="application/pdf",
+                            key=f"dl-{fname}",
+                        )
+        else:
+            show_response(resp)
 
     if not current_feats.get("uploads", True) and not no_selection:
-        st.info("This server does not expose /uploads")
+        st.info("This server does not expose /uploads/pdf")
+
 
 # --- Plugins ---
 with tabs[2]:

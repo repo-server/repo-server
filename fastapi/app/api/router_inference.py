@@ -27,6 +27,12 @@ class InferenceResponse(BaseModel):
 
 
 # --------- Endpoints ---------
+@router.get("/")
+def root():
+    """Root endpoint for /inference (for health/compatibility)"""
+    return {"ok": True, "service": "inference-root"}
+
+
 @router.get("/ping")
 def ping():
     """Health check for the inference router"""
