@@ -178,4 +178,5 @@ Custom stylesheet: `streamlit/.streamlit/neuroserve.css` controls theme, cards, 
 ---
 
 ## 📜 License
-MIT — see `LICENSE`.
+This project is licensed under the [MIT License](LICENSE).
+
