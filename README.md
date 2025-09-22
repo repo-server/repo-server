@@ -1,68 +1,65 @@
-# NeuroServe Dashboard (Multi-Server)
+# 🚀 NeuroServe Dashboard (Multi-Server Orchestrator)
 
-A lightweight framework to manage and run **multiple FastAPI servers** with a **Streamlit dashboard**, automatic orchestration via **run_all.py**, and built-in **health checks**.  
-Supports multiple servers, independent tokens, and one-click broadcast requests.
-
-> The dashboard (Streamlit) includes tabs: **Auth, Uploads, Plugins, Inference, Workflows, Health/Info, Broadcast**, with full server management from the sidebar (add/edit/delete/test) and persistence in `.streamlit/servers.json`.
+![Python](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.116.x-009688?logo=fastapi&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.x-FF4B4B?logo=streamlit&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.6.x-EE4C2C?logo=pytorch&logoColor=white)
+![CUDA](https://img.shields.io/badge/CUDA-Ready-76B900?logo=nvidia&logoColor=white)  
+[![Ubuntu CI](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-ubuntu.yml/badge.svg)](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-ubuntu.yml)
+[![Windows CI](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-windows.yml/badge.svg)](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-windows.yml)
+[![macOS CI](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-macos.yml/badge.svg)](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-macos.yml)
+[![GPU CI](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-gpu.yml/badge.svg)](https://github.com/TamerOnLine/repo-fastapi/actions/workflows/ci-gpu.yml)  
+![License](https://img.shields.io/badge/License-MIT-green)
+[![Sponsor](https://img.shields.io/badge/Sponsor-💖-pink)](https://paypal.me/tameronline)
 
 ---
 
-## 🔗 Table of Contents
-- [Features](#-features)
-- [Architecture](#-architecture)
-- [Quick Setup](#-quick-setup)
-- [Running Services with run_all](#-running-services-with-run_all)
-- [Streamlit Dashboard](#-streamlit-dashboard)
-- [FastAPI Server](#-fastapi-server)
-- [Plugins & Workflows](#-plugins--workflows)
-- [Customization & Styling](#-customization--styling)
-- [Screenshots](#-screenshots)
-- [Roadmap](#-roadmap)
-- [License](#-license)
+## 📖 Overview
+**NeuroServe Dashboard** is a flexible framework to manage and run **multiple FastAPI servers** through a **Streamlit dashboard**, orchestrated by a central script `run_all.py`.  
+It supports:
+- Running multiple services with **health checks** before continuing to the next.
+- Server management (add/delete/test connectivity/store tokens).
+- **Broadcast requests** to send the same request to all servers at once.
+- **Plugins & Workflows system** for easy extensibility.
 
 ---
 
 ## ✨ Features
-- **Multi-service orchestration** (API + UI) with one command, including **health checks** before moving to the next service.  
-- **Multi-server dashboard**: Add any number of FastAPI servers, test connectivity, save per-server tokens, and broadcast a request to all at once.  
-- **Automatic capability detection** using **OpenAPI** to only show supported tabs/buttons.  
-- Built-in **Auth (JWT demo)**, file uploads, plugin invocation, unified inference, and ready workflows.  
-- **Dark, professional theme** via external CSS.  
+- 🔄 **Orchestration**: Run API + UI with one command.
+- 📊 **Streamlit Dashboard** with a professional interface.
+- 🔌 **FastAPI Plugins & Workflows** ready to extend.
+- 🧠 **Unified Inference API** for simplified calls.
+- 🎨 **Custom CSS Theme** (neuroserve.css).
+- 🛡️ **JWT Authentication (demo)**.
 
 ---
 
 ## 🧱 Architecture
-```
+```text
 repo-server/
-├─ fastapi/      # FastAPI server (APIs, Plugins, Workflows, Docs, CI, Tests)
-├─ streamlit/    # Control dashboard (Streamlit) + .streamlit/servers.json
-├─ run_all.py    # Service launcher + health checks + process management
-└─ servers.json  # Service definitions (paths, commands, health URLs…)
+├─ fastapi/      # FastAPI server (APIs, Plugins, Workflows, Docs, Tests)
+├─ streamlit/    # Streamlit dashboard + .streamlit/servers.json
+├─ run_all.py    # Orchestrator: launches + health checks + graceful shutdown
+└─ servers.json  # Service definitions (paths, python_exe, health URLs…)
 ```
 
 ---
 
 ## ⚡ Quick Setup
 
-> Each service can use its own virtual environment (recommended), or you may share a single one. Define the correct `python_exe` path for each in `servers.json`.
-
-### 1) Clone the repo
+### 1. Clone
 ```bash
-git clone https://github.com/repo-server/repo-server
+git clone https://github.com/TamerOnLine/repo-server
 cd repo-server
 ```
 
-### 2) Create virtualenvs (recommended)
-- **Inside fastapi/**
+### 2. Virtualenvs (recommended)
 ```bash
 cd fastapi
 python -m venv .venv
-.venv\Scripts\activate    # Windows
+.venv\Scripts\activate
 pip install -r requirements.txt
-```
 
-- **Inside streamlit/**
-```bash
 cd ../streamlit
 python -m venv .venv
 .venv\Scripts\activate
@@ -71,11 +68,14 @@ pip install -r requirements.txt
 
 ---
 
-## 🚀 Running Services with `run_all`
+## 🚀 Run with Orchestrator
 
-`run_all.py` launches services in order, performs **health checks** (waits for `200 OK`), prints “Healthy” or “Health timeout,” and opens the dashboard in the browser if successful. If any process exits, all are shut down gracefully.
+```bash
+py -m run_all        # start API + Dashboard
+py -m run_all api    # start only API
+```
 
-### Example `servers.json`
+Example `servers.json`:
 ```json
 {
   "launch_order": ["api", "streamlit"],
@@ -84,99 +84,91 @@ pip install -r requirements.txt
       "cwd": "fastapi",
       "python_exe": "fastapi/.venv/Scripts/python.exe",
       "cmd": ["-m", "uvicorn", "main:app", "--app-dir", "app", "--host", "127.0.0.1", "--port", "8000", "--reload"],
-      "health": "http://127.0.0.1:8000/health",
-      "health_timeout": 30.0
+      "health": "http://127.0.0.1:8000/health"
     },
     "streamlit": {
       "cwd": "streamlit",
       "python_exe": "streamlit/.venv/Scripts/python.exe",
       "cmd": ["-m", "streamlit", "run", "app.py", "--server.address", "127.0.0.1", "--server.port", "8501"],
       "health": "http://127.0.0.1:8501/_stcore/health",
-      "health_timeout": 30.0,
       "exports": { "url": "http://127.0.0.1:8501" }
     }
   }
 }
 ```
 
-### Start everything:
-```bash
-py -m run_all        # or: python run_all.py
-```
-
-### Start only one service:
-```bash
-py -m run_all api
-```
-
 ---
 
 ## 🖥️ Streamlit Dashboard
-
-- **Sidebar**: select server, add/edit/delete, **test** latency, reload servers list from disk.  
+- **Sidebar**: Manage servers (add/edit/delete/test).  
 - **Tabs**:
-  - **Auth** → login (`POST /auth/login`), verify with `/auth/me`.  
-  - **Uploads** → upload/view via `/uploads`.  
-  - **Plugins** → list plugins & run tasks `/plugins/{name}/{task}`.  
-  - **Inference** → unified `POST /inference` API.  
-  - **Workflows** → run/read workflows (`/workflows`, `/workflows/run`).  
-  - **Health/Info** → open `/`, `/docs`, `/redoc`, plus latest response.  
-  - **Broadcast** → send one request to all servers, skipping unsupported endpoints.  
+  - 🔑 Auth (`/auth/login`, `/auth/me`)
+  - 📂 Uploads (`/uploads`)
+  - 🔌 Plugins (`/plugins/{name}/{task}`)
+  - 🧠 Inference (`/inference`)
+  - 🔗 Workflows (`/workflows/run`)
+  - ❤️ Health & Info (`/`, `/docs`, `/redoc`)
+  - 📢 Broadcast (send request to all servers)
 
 ---
 
 ## ⚙️ FastAPI Server
-
-- Core endpoints: `/health` returning `{ "status": "ok" }`.  
-- Routers: **Auth, Uploads, Plugins, Inference, Workflows, Services**.  
-- Unified responses via `app/utils/unify.py`.  
-
-Direct launch (without run_all):
-```bash
-cd fastapi
-.venv\Scripts\activate
-uvicorn main:app --app-dir app --reload --host 127.0.0.1 --port 8000
-```
+- Core endpoints: `/health`, `/env`, `/plugins`, `/workflows`.
+- Routers: **Auth, Uploads, Plugins, Inference, Services, Workflows**.
+- Includes **CORS, Logging, Unified Responses**.
 
 ---
 
 ## 🔌 Plugins & Workflows
+- Plugins under: `app/plugins/<name>/`
+- Workflows under: `app/workflows/<name>/`
 
-- **Plugins** in `app/plugins/<name>/` with `manifest.json` + `plugin.py`.  
-- **Workflows** in `app/workflows/…` with `manifest.json` + `workflow.json`.  
-- Use APIs:
-  - `POST /plugins/{name}/{task}`
-  - `POST /inference`
-  - `POST /workflows/run`
+API:
+```http
+POST /plugins/{name}/{task}
+POST /inference
+POST /workflows/run
+```
 
 ---
 
-## 🎨 Customization & Styling
-
-Custom stylesheet: `streamlit/.streamlit/neuroserve.css` controls theme, cards, buttons, and badges.  
+## 🎨 Customization
+UI customization via:  
+`streamlit/.streamlit/neuroserve.css`
 
 ---
 
 ## 🖼️ Screenshots
-
-### Dashboard – Plugins
 <p align="center">
-  <img src="docs/images/Screenshot.png" alt="Plugins Screenshot" width="800">
-  <br>
-  <em>Streamlit dashboard running the <code>pdf_reader</code> plugin (extract_text task).</em>
+  <img src="docs/images/Screenshot.png" alt="Dashboard Plugins" width="800">
 </p>
 
+---
+
+## 🏭 Deployment Notes
+- Run Uvicorn behind a reverse proxy (e.g., Nginx).  
+- Use environment variables `APP_*` instead of hardcoded values.  
+- Docker setup is planned in the roadmap.  
+
+---
+
+## 🤝 Contributing
+- Open **Issues** for ideas or bugs.  
+- Submit **Pull Requests** for improvements.  
+- Follow style guidelines (Ruff + pre-commit).  
+- See [Code Style Guide](fastapi/docs/CODE_STYLE_GUIDE.md).  
 
 ---
 
 ## 🗺️ Roadmap
-- Real JWT authentication & user management.  
-- Docker one-click launch.  
-- CLI generator for Plugins & Workflows.  
-- Extended CI integration tests.  
+- [ ] Docker one-click deployment.  
+- [ ] CLI generator for Plugins & Workflows.  
+- [ ] Extended Auth system (JWT + user management).  
+- [ ] Expanded integration tests (CI/CD).  
+- [ ] Example Plugins: translation, summarization, image classification.  
 
 ---
 
 ## 📜 License
-This project is licensed under the [MIT License](LICENSE).
-
+Licensed under the **MIT License** → [LICENSE](./LICENSE).  
+⚠️ Some AI/ML models have separate licenses: [Model Licenses](fastapi/docs/LICENSES.md).
