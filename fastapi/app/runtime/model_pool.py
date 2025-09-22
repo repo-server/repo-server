@@ -92,3 +92,75 @@ def get_model_pool() -> ModelPool:
         max_active=s.MAX_ACTIVE_MODELS,
         idle_unload_s=s.IDLE_UNLOAD_SECONDS,
     )
+
+if __name__ == "__main__":
+    """
+    CLI بسيطة لاختبار ModelPool بدون تحميل نماذج ثقيلة.
+    أمثلة تشغيل:
+      - عرض الحالة فقط:
+          python app/runtime/model_pool.py --status
+      - إنشاء نماذج وهمية وتحديث LRU:
+          python app/runtime/model_pool.py --demo
+      - اختبار تفريغ الخامل (sweep):
+          python app/runtime/model_pool.py --demo --sleep 2 --sweep 1
+    """
+    import argparse
+    import time
+
+    parser = argparse.ArgumentParser(description="ModelPool utility (no heavy models).")
+    parser.add_argument("--status", action="store_true", help="اعرض حالة الـ pool الحالية")
+    parser.add_argument("--demo", action="store_true", help="حمّل نماذج وهمية لإظهار LRU")
+    parser.add_argument("--count", type=int, default=3, help="عدد النماذج الوهمية في الديمو")
+    parser.add_argument("--sleep", type=float, default=0.0, help="انتظار بين التحميلات (ثوانٍ)")
+    parser.add_argument("--sweep", type=int, default=0, help="نفّذ sweep بعد N ثوانٍ (0 = لا)")
+    args = parser.parse_args()
+
+    pool = get_model_pool()
+
+    def dummy_factory(idx: int):
+        # كائن خفيف يمثل "موديل" بدون أي مكتبات ثقيلة
+        class DummyModel:
+            def __init__(self, name: str):
+                self.name = name
+            def __repr__(self) -> str:
+                return f"<DummyModel {self.name}>"
+        return DummyModel(f"m{idx}")
+
+    if args.status and not args.demo:
+        # عرض قائمة العناصر وبصمة زمن آخر استخدام
+        with pool.lock:
+            print(f"max_active={pool.max_active}, idle_unload_s={pool.idle_unload_s}")
+            print(f"pool_size={len(pool.pool)}")
+            for k, v in pool.pool.items():
+                age = time.time() - v["last"]
+                print(f"- {k}: last_used={v['last']:.0f} (age {age:.1f}s), obj={v['model']}")
+        raise SystemExit(0)
+
+    if args.demo:
+        print(f"💡 Demo: إنشاء {args.count} نموذج(اً) وهمياً...")
+        for i in range(args.count):
+            name = f"demo_{i+1}"
+            obj = pool.get(name, lambda i=i: dummy_factory(i))
+            print(f"  loaded: {name} -> {obj}")
+            if args.sleep > 0:
+                time.sleep(args.sleep)
+
+        with pool.lock:
+            print("\n📦 المحتويات بعد التحميل:")
+            for k, v in pool.pool.items():
+                print(f"- {k}: obj={v['model']}")
+
+        if args.sweep > 0:
+            print(f"\n⏳ الانتظار {args.sweep}s ثم sweep_idle() ...")
+            time.sleep(args.sweep)
+            pool.sweep_idle()
+
+            with pool.lock:
+                print("\n🧹 بعد الـ sweep:")
+                for k, v in pool.pool.items():
+                    print(f"- {k}: obj={v['model']}")
+
+        print("\n✅ تم.")
+    else:
+        # الوضع الافتراضي: طباعة مساعدة
+        parser.print_help()

@@ -1,4 +1,4 @@
 {
-  "ser1": "http://localhost:8000",
-  "ser2": "http://localhost:8001"
+  "default": "http://127.0.0.1:8000",
+  "local": "http://localhost:8000"
 }
